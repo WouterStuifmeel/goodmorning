@@ -1,0 +1,21 @@
+# Add this under `rest_command:` in Home Assistant's configuration.yaml
+# (or include this file directly, e.g. `rest_command: !include homeassistant/rest_commands.yaml`).
+#
+# Replace <synology-nas-ip> with your NAS's LAN IP (ideally a DHCP
+# reservation so it doesn't change) or a local DNS name if you have one.
+# The Docker-service-name form ("http://goodmorning:8000") only works when
+# HA and this service share a Docker network - that's not the case here,
+# since HA runs in a Synology VM (separate networking stack from Docker on
+# the same NAS). Plain LAN reachability via the published port is what
+# actually applies: see docker-compose.yml's "8000:8000" mapping.
+#
+# Also check Synology's Control Panel -> Security -> Firewall - port 8000
+# may need an explicit allow rule for traffic from the HA VM's IP/subnet.
+
+goodmorning_generate_episode:
+  url: "http://<synology-nas-ip>:9292/episodes"
+  method: POST
+  headers:
+    content-type: "application/json"
+  content_type: "application/json; charset=utf-8"
+  payload: "{{ payload }}"

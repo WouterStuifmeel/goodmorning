@@ -2,7 +2,7 @@ services:
   goodmorning:
     build: .
     ports:
-      - "8000:8000"
+      - "9292:8000"
     environment:
       GOODMORNING_PRESENTER_VOICE: cedar
       GOODMORNING_SCRIPT_PROVIDER: mock

@@ -1,0 +1,82 @@
+# Example automation: fetch today's weather forecast and POST it to the
+# goodmorning service as `source_facts`. Calendar events and reminders are
+# left empty here - fold in their own template blocks the same way once
+# those sources are wired up, so the whole thing still goes out as a single
+# POST /episodes call.
+#
+# This targets OpenWeatherMap, which only supports `type: hourly` (3-hour
+# steps), not `type: daily` - so "today's forecast" has to be built by
+# aggregating every step that falls on today's local date, rather than
+# reading a single ready-made daily entry. See homeassistant/README.md for
+# why, and what changes if you switch weather integrations again.
+#
+# Adjust:
+#   - `weather.openweathermap`  -> your actual weather entity
+#   - `location`                -> your actual location string
+#   - `interests`                -> your configured news interests
+#   - wind unit conversion       -> only needed if your HA instance's wind
+#                                    speed unit isn't already km/h
+#     (Settings -> System -> Units tells you what unit system is active)
+- id: '1766255061080'
+  alias: Good Morning - generate episode
+  description: Pulls today's weather and starts podcast generation
+  trigger:
+    - platform: time
+      at: "05:45:00"
+  condition: []
+  action:
+    - action: weather.get_forecasts
+      target:
+        entity_id: weather.openweathermap
+      data:
+        type: hourly
+      response_variable: forecast_response
+
+    - variables:
+        # Aggregate every forecast step whose local date is today into one
+        # summary: min/max temperature across the day, the day's highest
+        # rain chance, and the step nearest midday as the "representative"
+        # condition/wind (a 3am reading of "clear" isn't what you want
+        # narrated as today's weather).
+        weather_calc: >-
+          {% set ns = namespace(high=-999, low=999, precip=0, wind=none, cond=none) %}
+          {% for entry in forecast_response['weather.openweathermap'].forecast %}
+            {% set local_dt = as_local(as_datetime(entry.datetime)) %}
+            {% if local_dt.date() == now().date() %}
+              {% if entry.temperature > ns.high %}{% set ns.high = entry.temperature %}{% endif %}
+              {% if entry.temperature < ns.low %}{% set ns.low = entry.temperature %}{% endif %}
+              {% set step_precip = entry.precipitation_probability | default(0, true) %}
+              {% if step_precip > ns.precip %}{% set ns.precip = step_precip %}{% endif %}
+              {% if local_dt.hour >= 11 and local_dt.hour <= 13 %}
+                {% set ns.wind = entry.wind_speed %}
+                {% set ns.cond = entry.condition %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ {"high": ns.high, "low": ns.low, "precip": ns.precip, "wind": ns.wind, "cond": ns.cond} }}
+
+        payload: >-
+          {{
+            {
+              "source_facts": {
+                "episode_date": now().strftime("%Y-%m-%d"),
+                "location": "Utrecht, Netherlands",
+                "weather": {
+                  "summary": ((weather_calc.cond | default('mixed conditions', true) | replace('-', ' '))
+                              ~ ", highs near " ~ weather_calc.high | round(0) | string ~ "°C"),
+                  "high_c": weather_calc.high,
+                  "low_c": weather_calc.low,
+                  "conditions": weather_calc.cond | default('unknown', true),
+                  "precipitation_chance": weather_calc.precip,
+                  "wind_kph": weather_calc.wind
+                },
+                "calendar_events": [],
+                "reminders": [],
+                "interests": ["technology", "world"]
+              }
+            } | to_json
+          }}
+
+    - action: rest_command.goodmorning_generate_episode
+      data:
+        payload: "{{ payload }}"

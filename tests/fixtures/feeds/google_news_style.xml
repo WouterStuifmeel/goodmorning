@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Sample Aggregator Feed</title>
+  <link>https://example.com/aggregator</link>
+  <description>A Google News-style aggregator feed for tests</description>
+  <item>
+    <title>City approves new bike lane network - Local Gazette</title>
+    <link>https://aggregator.example.com/rss/articles/abc123?oc=5</link>
+    <source url="https://localgazette.example.com">Local Gazette</source>
+    <description>&lt;ol&gt;&lt;li&gt;&lt;a href="https://aggregator.example.com/rss/articles/abc123?oc=5"&gt;City approves new bike lane network&amp;nbsp;&amp;nbsp;Local Gazette&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href="https://aggregator.example.com/rss/articles/def456?oc=5"&gt;Council votes for bike lanes&amp;nbsp;&amp;nbsp;Other Outlet&lt;/a&gt;&lt;/li&gt;&lt;/ol&gt;</description>
+    <pubDate>Fri, 19 Sep 2026 06:00:00 GMT</pubDate>
+  </item>
+  <item>
+    <title>Researchers report progress on battery recycling - Tech Daily</title>
+    <link>https://aggregator.example.com/rss/articles/ghi789?oc=5</link>
+    <source url="https://techdaily.example.com">Tech Daily</source>
+    <description>&lt;a href="https://aggregator.example.com/rss/articles/ghi789?oc=5"&gt;Researchers report progress on battery recycling&amp;nbsp;&amp;nbsp;Tech Daily&lt;/a&gt;</description>
+    <pubDate>Fri, 19 Sep 2026 05:30:00 GMT</pubDate>
+  </item>
+</channel>
+</rss>

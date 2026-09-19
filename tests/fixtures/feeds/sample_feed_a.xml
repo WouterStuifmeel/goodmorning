@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Sample Feed A</title>
+  <link>https://example.com/feed-a</link>
+  <description>A sample feed for tests</description>
+  <item>
+    <title>First story from feed A</title>
+    <link>https://example.com/feed-a/first-story</link>
+    <description>&lt;p&gt;Summary of the first story, with &lt;b&gt;markup&lt;/b&gt;.&lt;/p&gt;</description>
+    <pubDate>Fri, 19 Sep 2026 06:00:00 GMT</pubDate>
+  </item>
+  <item>
+    <title>Second story from feed A</title>
+    <link>https://example.com/feed-a/second-story</link>
+    <description>Summary of the second story.</description>
+    <pubDate>Fri, 19 Sep 2026 05:30:00 GMT</pubDate>
+  </item>
+</channel>
+</rss>

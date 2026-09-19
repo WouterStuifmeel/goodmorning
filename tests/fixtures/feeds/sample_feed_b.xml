@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Sample Feed B</title>
+  <link>https://example.com/feed-b</link>
+  <description>A second sample feed for tests</description>
+  <item>
+    <title>Only story from feed B</title>
+    <link>https://example.com/feed-b/only-story</link>
+    <description>Summary of the only story in feed B.</description>
+    <pubDate>Fri, 19 Sep 2026 07:00:00 GMT</pubDate>
+  </item>
+</channel>
+</rss>

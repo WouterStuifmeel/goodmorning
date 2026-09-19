@@ -1,0 +1,28 @@
+{
+  "episode_date": "2026-09-19",
+  "location": "Utrecht",
+  "weather": {
+    "summary": "Partly cloudy with a light breeze",
+    "high_c": 19,
+    "low_c": 11,
+    "conditions": "partly cloudy",
+    "precipitation_chance": 20,
+    "wind_kph": 14
+  },
+  "calendar_events": [
+    {
+      "title": "Team standup",
+      "start": "2026-09-19T09:00:00+02:00",
+      "end": "2026-09-19T09:15:00+02:00",
+      "location": "Office",
+      "all_day": false
+    }
+  ],
+  "reminders": [
+    {
+      "text": "Take out the recycling",
+      "due": "2026-09-19T08:00:00+02:00"
+    }
+  ],
+  "interests": ["technology", "local"]
+}

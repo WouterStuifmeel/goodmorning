@@ -1,0 +1,24 @@
+{
+  "feeds": [
+    {
+      "name": "World News",
+      "url": "https://news.google.com/rss/headlines/section/topic/WORLD?hl=nl&gl=NL&ceid=NL:nl",
+      "interests": []
+    },
+    {
+      "name": "Main Dutch News",
+      "url": "https://news.google.com/rss?hl=nl&gl=NL&ceid=NL:nl",
+      "interests": []
+    },
+    {
+      "name": "Utrecht News",
+      "url": "https://news.google.com/rss/search?q=Utrecht&hl=nl&gl=NL&ceid=NL:nl",
+      "interests": ["local", "Utrecht"]
+    },
+    {
+      "name": "Technology News",
+      "url": "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en&gl=NL&ceid=NL:en",
+      "interests": ["technology"]
+    }
+  ]
+}

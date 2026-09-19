@@ -4,7 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-No code has been committed yet — the repository holds only design docs. `AGENTS.md` is the authoritative spec for what to build; read it in full before implementing. This file summarizes the architecture and the non-obvious constraints; keep both in sync. Do not assume tooling exists (no build/test/lint commands are established yet); once they run from the repo root, document them here.
+Milestone 1 (mock-first vertical slice) is implemented: FastAPI service, typed Pydantic models, mock providers, an FFmpeg-based audio renderer, SQLite job storage, and atomic manifest/MP3 output — all runnable with zero paid API calls. `AGENTS.md` is the authoritative spec for what to build; read it in full before implementing further.
+
+Real providers now built for all three swappable stages: `RssNewsProvider` (`config/feeds.json`), `OpenAIScriptProvider` (structured-output script generation, grounding validated post-hoc against supplied news candidates), and `OpenAITTSProvider` (`gpt-4o-mini-tts`, streamed WAV - see `app/providers/openai/`). The audio renderer normalizes every section's sample rate/channels before concatenation, since OpenAI's TTS output (24kHz mono) differs from the mock's (44.1kHz mono) - see `FFmpegAudioRenderer._normalize` in `app/audio/renderer.py`. Not yet built: Home Assistant wiring (see MVP boundary below).
+
+### Running it
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest                          # full suite, no network/paid calls
+uvicorn app.main:app --reload   # serves on :8000; POST /episodes, GET /episodes/{id}, GET /health
+```
+
+Requires `ffmpeg`/`ffprobe` on PATH. Config is env-driven (see `app/config.py`), prefixed `GOODMORNING_` (e.g. `GOODMORNING_OUTPUT_DIR`, `GOODMORNING_DB_PATH`). Provider selection:
+- `GOODMORNING_NEWS_PROVIDER`: `mock` (default) or `rss` (reads `config/feeds.json`, live network, no key needed)
+- `GOODMORNING_SCRIPT_PROVIDER`: `mock` (default) or `openai` (needs `GOODMORNING_OPENAI_API_KEY`, real paid calls)
+- `GOODMORNING_TTS_PROVIDER`: `mock` (default) or `openai` (needs `GOODMORNING_OPENAI_API_KEY`, real paid calls)
 
 ## What this is
 

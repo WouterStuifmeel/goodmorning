@@ -19,7 +19,7 @@ def pipeline(tmp_path: Path) -> Pipeline:
         news_provider=MockNewsProvider(),
         script_provider=MockScriptProvider(),
         tts_provider=MockTTSProvider(),
-        audio_renderer=FFmpegAudioRenderer(bed_file=None),
+        audio_renderer=FFmpegAudioRenderer(intro_jingle_file=None),
         job_store=job_store,
         output_dir=tmp_path / "output",
         voice="alloy",

@@ -18,7 +18,12 @@ class Settings(BaseSettings):
         "Warm, calm morning-radio delivery: gentle at the start, gradually "
         "brighter, natural pacing, concise."
     )
-    music_bed_file: Path | None = None
+    # One-shot wake-up jingle played before narration starts. Narration comes
+    # in at intro_jingle_narration_start_seconds - a fixed cue point timed to
+    # that specific jingle's build, not derived from its total length. Not
+    # looped or mixed under the rest of the episode.
+    intro_jingle_file: Path | None = None
+    intro_jingle_narration_start_seconds: float = 29.0
     feeds_config_path: Path = Path("./config/feeds.json")
 
     # Provider selection: "mock" (default, no paid calls) or "openai".

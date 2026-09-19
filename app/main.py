@@ -73,8 +73,11 @@ def _build_tts_provider(
     )
 
 
-def _build_audio_renderer(bed_file) -> AudioRenderer:
-    return FFmpegAudioRenderer(bed_file=bed_file)
+def _build_audio_renderer(settings: Settings) -> AudioRenderer:
+    return FFmpegAudioRenderer(
+        intro_jingle_file=settings.intro_jingle_file,
+        narration_start_seconds=settings.intro_jingle_narration_start_seconds,
+    )
 
 
 @asynccontextmanager
@@ -92,7 +95,7 @@ async def lifespan(app: FastAPI):
         news_provider=news_provider,
         script_provider=_build_script_provider(settings, openai_client),
         tts_provider=_build_tts_provider(settings, openai_client),
-        audio_renderer=_build_audio_renderer(settings.music_bed_file),
+        audio_renderer=_build_audio_renderer(settings),
         job_store=job_store,
         output_dir=settings.output_dir,
         voice=settings.presenter_voice,

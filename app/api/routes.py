@@ -26,6 +26,12 @@ class JobResponse(BaseModel):
     job: Job
 
 
+class JobListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    jobs: list[Job]
+
+
 def _job_store(request: Request) -> JobStore:
     return request.app.state.job_store
 
@@ -55,6 +61,14 @@ async def start_or_retry_generation(
     await asyncio.to_thread(job_store.save, job)
     background_tasks.add_task(pipeline.run, job)
     return JobResponse(job=job)
+
+
+@router.get("/episodes", response_model=JobListResponse)
+async def list_jobs(request: Request, limit: int = 50) -> JobListResponse:
+    """List recent jobs, newest first, without triggering generation."""
+    job_store = _job_store(request)
+    jobs = await asyncio.to_thread(job_store.list_recent, limit)
+    return JobListResponse(jobs=jobs)
 
 
 @router.get("/episodes/{job_id}", response_model=JobResponse)

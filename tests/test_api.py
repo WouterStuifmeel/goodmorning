@@ -80,3 +80,23 @@ def test_retry_with_force_starts_new_job(client: TestClient) -> None:
 def test_unknown_job_returns_404(client: TestClient) -> None:
     resp = client.get("/episodes/does-not-exist")
     assert resp.status_code == 404
+
+
+def test_list_jobs_returns_recent_jobs_newest_first(client: TestClient) -> None:
+    source_facts = json.loads((FIXTURES_DIR / "source_facts.json").read_text())
+
+    first = client.post("/episodes", json={"source_facts": source_facts})
+    first_job_id = first.json()["job"]["id"]
+    _poll_until_finished(client, first_job_id)
+
+    second = client.post(
+        "/episodes", json={"source_facts": source_facts, "force_regenerate": True}
+    )
+    second_job_id = second.json()["job"]["id"]
+    _poll_until_finished(client, second_job_id)
+
+    resp = client.get("/episodes")
+    assert resp.status_code == 200
+    jobs = resp.json()["jobs"]
+    ids = [job["id"] for job in jobs]
+    assert ids.index(second_job_id) < ids.index(first_job_id)

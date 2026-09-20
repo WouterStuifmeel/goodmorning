@@ -76,3 +76,12 @@ class JobStore:
                 (episode_date,),
             ).fetchone()
         return Job.model_validate_json(row[0]) if row else None
+
+    def list_recent(self, limit: int = 50) -> list[Job]:
+        """Most recently updated jobs, newest first."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT data FROM jobs ORDER BY updated_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [Job.model_validate_json(row[0]) for row in rows]

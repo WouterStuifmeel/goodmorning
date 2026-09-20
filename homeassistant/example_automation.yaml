@@ -63,11 +63,23 @@
           {{ ns.events | sort(attribute='start') }}
         # Aggregate every forecast step whose local date is today into one
         # summary: min/max temperature across the day, the day's highest
-        # rain chance, and the step nearest midday as the "representative"
-        # condition/wind (a 3am reading of "clear" isn't what you want
-        # narrated as today's weather).
+        # rain chance plus which parts of the day it's expected in, and the
+        # step nearest midday as the "representative" condition/wind (a 3am
+        # reading of "clear" isn't what you want narrated as today's
+        # weather). Rain timing is bucketed into morning (6-12), afternoon
+        # (12-18) and evening (18-24); a bucket is only called out if some
+        # step in it clears `threshold` (30%), so a stray 5% chance at
+        # 3pm doesn't get narrated as "rain in the afternoon". Dutch weather
+        # regularly does sun-then-showers-then-thunder in one day, so each
+        # bucket also keeps the condition of its rainiest step (not just the
+        # single midday snapshot), so morning drizzle and an evening
+        # thunderstorm don't get flattened into one generic "rain" mention.
         weather_calc: >-
-          {% set ns = namespace(high=-999, low=999, precip=0, wind=none, cond=none) %}
+          {% set threshold = 30 %}
+          {% set ns = namespace(high=-999, low=999, precip=0, wind=none, wind_bearing=none, cond=none, rain_periods=[],
+                                 morning_precip=-1, morning_cond=none,
+                                 afternoon_precip=-1, afternoon_cond=none,
+                                 evening_precip=-1, evening_cond=none) %}
           {% for entry in forecast_response['weather.openweathermap'].forecast %}
             {% set local_dt = as_local(as_datetime(entry.datetime)) %}
             {% if local_dt.date() == now().date() %}
@@ -75,13 +87,52 @@
               {% if entry.temperature < ns.low %}{% set ns.low = entry.temperature %}{% endif %}
               {% set step_precip = entry.precipitation_probability | default(0, true) %}
               {% if step_precip > ns.precip %}{% set ns.precip = step_precip %}{% endif %}
+              {% set period = 'morning' if local_dt.hour < 12 else ('afternoon' if local_dt.hour < 18 else 'evening') %}
+              {% if step_precip >= threshold and period not in ns.rain_periods %}
+                {% set ns.rain_periods = ns.rain_periods + [period] %}
+              {% endif %}
+              {% if period == 'morning' and step_precip > ns.morning_precip %}
+                {% set ns.morning_precip = step_precip %}
+                {% set ns.morning_cond = entry.condition %}
+              {% elif period == 'afternoon' and step_precip > ns.afternoon_precip %}
+                {% set ns.afternoon_precip = step_precip %}
+                {% set ns.afternoon_cond = entry.condition %}
+              {% elif period == 'evening' and step_precip > ns.evening_precip %}
+                {% set ns.evening_precip = step_precip %}
+                {% set ns.evening_cond = entry.condition %}
+              {% endif %}
               {% if local_dt.hour >= 11 and local_dt.hour <= 13 %}
                 {% set ns.wind = entry.wind_speed %}
+                {% set ns.wind_bearing = entry.wind_bearing | default(none, true) %}
                 {% set ns.cond = entry.condition %}
               {% endif %}
             {% endif %}
           {% endfor %}
-          {{ {"high": ns.high, "low": ns.low, "precip": ns.precip, "wind": ns.wind, "cond": ns.cond} }}
+          {{ {"high": ns.high, "low": ns.low, "precip": ns.precip, "rain_periods": ns.rain_periods,
+              "morning_cond": ns.morning_cond, "afternoon_cond": ns.afternoon_cond, "evening_cond": ns.evening_cond,
+              "wind": ns.wind, "wind_bearing": ns.wind_bearing, "cond": ns.cond} }}
+
+        # "showers in the morning, thunderstorms in the evening" - one phrase
+        # per bucket that cleared the threshold, using that bucket's own
+        # rainiest-step condition rather than a single day-wide label. `none`
+        # if no bucket cleared the threshold.
+        rain_timing_text: >-
+          {% set phrases = [] %}
+          {% for period in ['morning', 'afternoon', 'evening'] %}
+            {% if period in weather_calc.rain_periods %}
+              {% set cond = (weather_calc[period ~ '_cond'] | default('showers', true) | replace('-', ' ')) %}
+              {% set phrases = phrases + [cond ~ ' in the ' ~ period] %}
+            {% endif %}
+          {% endfor %}
+          {{ phrases | join(', ') if phrases else none }}
+
+        # 16-point compass rose from the midday step's wind_bearing (degrees).
+        # Kept as a single {{ }} substitution (ternary, not {% if %}/{% else %})
+        # so HA's automation variable renderer infers the native type instead
+        # of stringifying `none` to the literal text "None".
+        wind_direction_text: >-
+          {% set points = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'] %}
+          {{ points[((weather_calc.wind_bearing | float / 22.5) | round | int) % 16] if weather_calc.wind_bearing is not none else none }}
 
         payload: >-
           {{
@@ -96,7 +147,9 @@
                   "low_c": weather_calc.low,
                   "conditions": weather_calc.cond | default('unknown', true),
                   "precipitation_chance": weather_calc.precip,
-                  "wind_kph": weather_calc.wind
+                  "rain_timing": rain_timing_text,
+                  "wind_kph": weather_calc.wind,
+                  "wind_direction": wind_direction_text
                 },
                 "calendar_events": calendar_events_list,
                 "reminders": [],

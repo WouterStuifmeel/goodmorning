@@ -171,8 +171,15 @@ class OpenAIScriptProvider(ScriptProvider):
             lines.append(
                 f"  Precipitation chance: {facts.weather.precipitation_chance:.0f}%"
             )
+            if facts.weather.rain_timing:
+                lines.append(f"  Rain timing: {facts.weather.rain_timing}")
         if facts.weather.wind_kph is not None:
-            lines.append(f"  Wind: {facts.weather.wind_kph:.0f} kph")
+            direction = (
+                f" from the {facts.weather.wind_direction}"
+                if facts.weather.wind_direction
+                else ""
+            )
+            lines.append(f"  Wind: {facts.weather.wind_kph:.0f} kph{direction}")
 
         lines.append("")
         lines.append("Calendar events:")

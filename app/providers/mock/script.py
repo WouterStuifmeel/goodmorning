@@ -48,6 +48,11 @@ class MockScriptProvider(ScriptProvider):
         ]
         if w.precipitation_chance is not None:
             parts.append(f"Chance of precipitation: {w.precipitation_chance:.0f} percent.")
+            if w.rain_timing:
+                parts.append(f"Expect {w.rain_timing}.")
+        if w.wind_kph is not None:
+            direction = f" from the {w.wind_direction}" if w.wind_direction else ""
+            parts.append(f"Wind: {w.wind_kph:.0f} kph{direction}.")
         return " ".join(parts)
 
     def _calendar_text(self, facts: SourceFacts) -> str:

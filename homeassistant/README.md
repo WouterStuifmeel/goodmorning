@@ -55,9 +55,17 @@ that does, but **not every integration supports the same forecast type**:
   single "today" entry at all. The example now aggregates every step whose
   *local* date matches today: min/max `temperature` across those steps for
   low/high, the day's peak `precipitation_probability`, and the step
-  nearest midday (11:00-13:00 local) as the representative
-  condition/wind - a 3am reading of "clear" shouldn't be narrated as
-  today's weather.
+  nearest midday (11:00-13:00 local) as the representative condition/wind/
+  `wind_bearing` (for `WeatherForecast.wind_direction`) - a 3am reading of
+  "clear" shouldn't be narrated as today's weather.
+- **Rain timing isn't a single event.** Dutch weather routinely does
+  sun-then-showers-then-thunder in one day, so `WeatherForecast.rain_timing`
+  isn't just "morning" - the template buckets every step into
+  morning/afternoon/evening, calls out *any* bucket whose rain chance
+  clears 30%, and pairs each with that bucket's own rainiest-step
+  condition (not one day-wide label). Result reads like `"showers in the
+  morning, thunderstorms in the evening"`, and can name multiple
+  non-contiguous parts of the day.
 
 If you switch weather integrations again, check what `type` values it
 supports first (Developer Tools -> Actions -> `weather.get_forecasts`,
@@ -70,6 +78,11 @@ original version of this example did.
 - **Wind units**: `wind_speed` comes back in whatever unit your HA instance
   is configured for. `WeatherForecast.wind_kph` assumes km/h - convert in
   the template (or in HA's unit settings) if yours reports mph.
+- **Wind direction**: derived from the midday step's `wind_bearing`
+  (degrees) via a 16-point compass rose in the template - not every
+  integration provides `wind_bearing`; the template already guards this
+  with `is not none`, so `WeatherForecast.wind_direction` just comes back
+  `null` if yours doesn't.
 - **Some integrations don't provide every field**: `weather.forecast_thuis`
   (Buienradar-based) has no `precipitation_probability` - only a
   `precipitation` amount in mm. The template guards missing/undefined

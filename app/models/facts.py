@@ -15,7 +15,16 @@ class WeatherForecast(BaseModel):
     low_c: float
     conditions: str
     precipitation_chance: float | None = Field(default=None, ge=0, le=100)
+    rain_timing: str | None = Field(
+        default=None,
+        description=(
+            "Free-text description of when rain is expected and of what kind, "
+            "e.g. 'showers in the morning, thunderstorms in the evening'. "
+            "May name multiple, non-contiguous parts of the day."
+        ),
+    )
     wind_kph: float | None = None
+    wind_direction: str | None = None
 
 
 class CalendarEvent(BaseModel):

@@ -2,22 +2,22 @@
   "feeds": [
     {
       "name": "World News",
-      "url": "https://news.google.com/rss/headlines/section/topic/WORLD?hl=nl&gl=NL&ceid=NL:nl",
+      "url": "https://feeds.nos.nl/nosnieuwsbuitenland",
       "interests": []
     },
     {
       "name": "Main Dutch News",
-      "url": "https://news.google.com/rss?hl=nl&gl=NL&ceid=NL:nl",
+      "url": "https://feeds.nos.nl/nosnieuwsalgemeen",
       "interests": []
     },
     {
       "name": "Utrecht News",
-      "url": "https://news.google.com/rss/search?q=Utrecht&hl=nl&gl=NL&ceid=NL:nl",
+      "url": "https://www.rtvutrecht.nl/rss/nieuws",
       "interests": ["local", "Utrecht"]
     },
     {
       "name": "Technology News",
-      "url": "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en&gl=NL&ceid=NL:en",
+      "url": "https://techcrunch.com/feed/",
       "interests": ["technology"]
     }
   ]

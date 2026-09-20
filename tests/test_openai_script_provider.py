@@ -127,6 +127,22 @@ async def test_valid_output_produces_grounded_script(source_facts) -> None:
     assert completions.last_call_kwargs["model"] == "gpt-4o-mini"
 
 
+async def test_weather_bulletin_prompt_warns_about_other_regions(source_facts) -> None:
+    message = _FakeMessage(parsed=_valid_llm_output([]))
+    provider, completions = _make_provider(_FakeCompletion(message))
+
+    await provider.generate_script(
+        source_facts,
+        [],
+        weather_forecast_text="In het noorden kans op mist, elders wisselend bewolkt.",
+    )
+
+    user_message = completions.last_call_kwargs["messages"][1]["content"]
+    assert "In het noorden kans op mist" in user_message
+    assert source_facts.location in user_message
+    assert "never mention a detail the bulletin" in user_message.lower()
+
+
 async def test_missing_section_raises(source_facts) -> None:
     incomplete = _LLMScriptOutput(
         sections=[

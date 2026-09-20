@@ -62,6 +62,11 @@ prominence in the news cycle.
 list.
 - If there are no calendar events or reminders, say so plainly - do not \
 invent any.
+- If a supplied weather source describes the forecast broken down by named \
+sub-region of a country (e.g. north/central/south, coastal vs inland), only \
+narrate the nationwide-general parts plus whichever sub-region actually \
+covers the listener's own location below - never state a detail the source \
+explicitly attaches to a different, named region the listener isn't in.
 - Keep each section brief and spoken-friendly (no bullet points, no markdown).
 """
 
@@ -195,11 +200,19 @@ class OpenAIScriptProvider(ScriptProvider):
             lines.append(f"  Wind: {facts.weather.wind_kph:.0f} kph{direction}")
         if weather_forecast_text:
             lines.append(
-                "  Additional official forecast bulletin (KNMI, in Dutch - use "
-                "this only to add real texture/context to the weather section "
-                "in English, e.g. cloud development or how conditions change "
-                "through the day; the numbers above remain authoritative if "
-                "they conflict with anything below):"
+                f"  Additional official forecast bulletin (KNMI, in Dutch). This "
+                f"covers the WHOLE of the Netherlands, not just {facts.location} - "
+                f"it is often broken down by named sub-region (e.g. \"noorden\"/"
+                f"north meaning Groningen, Drenthe and Friesland; \"midden\"/"
+                f"central; \"zuiden\"/south; coastal vs inland; Waddeneilanden). "
+                f"Only use the nationwide-general parts of this bulletin, plus "
+                f"(if present) whichever named sub-region actually covers "
+                f"{facts.location} - never mention a detail the bulletin "
+                f"attaches to a different, named region. Use it only to add "
+                f"real texture to the weather section in English, e.g. cloud "
+                f"development or how conditions change through the day; the "
+                f"structured numbers above remain authoritative if anything "
+                f"conflicts:"
             )
             lines.append(f"    {weather_forecast_text}")
 

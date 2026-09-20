@@ -1,7 +1,9 @@
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
+RUN for i in 1 2 3; do \
+        apt-get update && apt-get install -y --no-install-recommends ffmpeg && break; \
+        echo "apt-get failed (attempt $i), retrying..." && sleep 5; \
+    done \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -1,6 +1,6 @@
 services:
   goodmorning:
-    build: .
+    image: goodmorning:latest
     ports:
       - "9292:8000"
     environment:
@@ -9,15 +9,11 @@ services:
       GOODMORNING_TTS_PROVIDER: mock
       GOODMORNING_NEWS_PROVIDER: mock
     env_file:
-      # GOODMORNING_OPENAI_API_KEY etc, kept out of the repo. Optional while
-      # every provider is "mock" - copy .env.example to .env when you need it.
-      - path: .env
+      - path: /volume1/docker/goodmorning/.env
         required: false
     volumes:
       - jobs-data:/data
-      # Point this at the same host path Home Assistant's media_source
-      # is configured to read from, e.g. ./ha-config/media/goodmorning
-      - ./output:/media/goodmorning
+      - /volume1/docker/goodmorning/output:/media/goodmorning
 
 volumes:
   jobs-data:

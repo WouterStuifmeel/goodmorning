@@ -1,7 +1,7 @@
-# Example automation: fetch today's weather forecast and POST it to the
-# goodmorning service as `source_facts`. Calendar events and reminders are
-# left empty here - fold in their own template blocks the same way once
-# those sources are wired up, so the whole thing still goes out as a single
+# Example automation: fetch today's weather forecast and calendar events and
+# POST them to the goodmorning service as `source_facts` in a single call.
+# Reminders are left empty here - fold in their own template block the same
+# way once that source is wired up, so the whole thing still goes out as one
 # POST /episodes call.
 #
 # This targets OpenWeatherMap, which only supports `type: hourly` (3-hour
@@ -32,7 +32,35 @@
         type: hourly
       response_variable: forecast_response
 
+    - action: calendar.get_events
+      target:
+        entity_id:
+          - calendar.w_stuifmeel_gmail_com
+          - calendar.gezin
+      data:
+        start_date_time: "{{ now().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S') }}"
+        end_date_time: "{{ (now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S') }}"
+      response_variable: calendar_response
+
     - variables:
+        # calendar.get_events replies per targeted entity ({entity_id: {events: [...]}}),
+        # so flatten every calendar's events into one list. HA marks an all-day event by
+        # giving `start`/`end` as a bare date ("2026-09-20") instead of a full datetime
+        # ("2026-09-20 09:00:00") - a 10-char string is the date-only case.
+        calendar_events_list: >-
+          {% set ns = namespace(events=[]) %}
+          {% for cal in calendar_response.values() %}
+            {% for event in cal.events %}
+              {% set ns.events = ns.events + [{
+                "title": event.summary,
+                "start": event.start,
+                "end": event.end | default(none, true),
+                "location": event.location | default(none, true),
+                "all_day": (event.start | length) == 10
+              }] %}
+            {% endfor %}
+          {% endfor %}
+          {{ ns.events | sort(attribute='start') }}
         # Aggregate every forecast step whose local date is today into one
         # summary: min/max temperature across the day, the day's highest
         # rain chance, and the step nearest midday as the "representative"
@@ -70,7 +98,7 @@
                   "precipitation_chance": weather_calc.precip,
                   "wind_kph": weather_calc.wind
                 },
-                "calendar_events": [],
+                "calendar_events": calendar_events_list,
                 "reminders": [],
                 "interests": ["technology", "world"]
               }

@@ -1,4 +1,4 @@
-# Home Assistant wiring (weather, so far)
+# Home Assistant wiring (weather + calendar, so far)
 
 This folder holds reference HA config, not app config - copy the relevant
 bits into your own `configuration.yaml` / automations and adjust entity IDs.
@@ -10,8 +10,38 @@ bits into your own `configuration.yaml` / automations and adjust entity IDs.
    by Docker service name; only plain LAN reachability applies.
 2. `example_automation.yaml` - a time-triggered automation that calls
    `weather.get_forecasts`, aggregates today's forecast, maps it onto the
-   service's `WeatherForecast` schema (`app/models/facts.py`), and fires the
-   rest_command with a full `source_facts` payload.
+   service's `WeatherForecast` schema (`app/models/facts.py`), calls
+   `calendar.get_events` for today and maps the results onto `CalendarEvent`,
+   then fires the rest_command with a full `source_facts` payload in one
+   atomic POST.
+3. `automation.yaml` - a full export of this Home Assistant instance's
+   actual automations (unrelated ones included), kept here as a working
+   backup/reference. The "Good Morning - generate episode" entry near the
+   end is the real deployed version of #2 above - simpler weather handling
+   (`weather.home` supports `type: daily` directly, no hourly aggregation
+   needed) but the same calendar wiring.
+
+## Calendar events
+
+`calendar.get_events` is called once, targeting every calendar entity you
+list under `target: entity_id:` (`calendar.w_stuifmeel_gmail_com` and
+`calendar.gezin` in the checked-in examples - replace with your own). Its
+response is keyed per entity (`{entity_id: {events: [...]}}`), so the
+template flattens every targeted calendar's events into one list before
+mapping each onto `CalendarEvent` (`title`, `start`, `end`, `location`,
+`all_day`).
+
+- The window queried is local midnight to midnight (today only) via
+  `start_date_time`/`end_date_time` - change this if you want a wider
+  lookahead (e.g. tomorrow's early meetings mentioned tonight).
+- **All-day detection**: HA gives all-day events a bare date string
+  (`"2026-09-20"`, 10 characters) for `start`/`end` instead of a full
+  datetime (`"2026-09-20 09:00:00"`). The template treats a 10-character
+  `start` as `all_day: true` - this is a string-length heuristic, not a
+  field HA exposes directly, so double-check it still holds if an
+  integration ever formats dates differently.
+- Multiple calendars are merged and sorted by `start` so events interleave
+  correctly across calendars rather than appearing calendar-by-calendar.
 
 ## Why `weather.get_forecasts` instead of the entity state
 
@@ -53,10 +83,10 @@ original version of this example did.
   the script provider to phrase naturally from `conditions`/`high_c`/`low_c`
   - may be simpler to just make `summary` optional and drop it from what
   HA supplies.
-- **Calendar events and reminders**: not included yet - same automation
-  should grow more `variables:` blocks (e.g. from `calendar.get_events`)
-  that get folded into the same `source_facts` payload, so the whole thing
-  stays one atomic POST rather than three partial ones.
+- **Reminders**: still not included - same automation should grow another
+  `variables:` block for whatever HA source you use for reminders/to-dos
+  (e.g. a `todo.*` entity via `todo.get_items`), folded into the same
+  `source_facts` payload alongside weather and calendar.
 - **Auth**: this hits the service with no credentials (see CLAUDE.md's
   "No auth on the API" remaining-work item) - fine on an internal Docker
   network, not fine once it's reachable over the LAN from a separate VM

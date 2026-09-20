@@ -32,12 +32,22 @@ class Settings(BaseSettings):
     # News provider: "mock" (default, no network) or "rss" (live feeds,
     # configured via feeds_config_path - free, but not deterministic).
     news_provider: str = "mock"
+    # Weather provider: "mock" (default, no network) or "knmi" (live KNMI
+    # Open Data Platform bulletin, needs knmi_api_key). Supplements, never
+    # replaces, the structured weather facts Home Assistant supplies.
+    weather_provider: str = "mock"
+
+    knmi_api_key: str | None = None
+    knmi_dataset_name: str = "short_term_weather_forecast"
+    knmi_dataset_version: str = "1.0"
 
     openai_api_key: str | None = None
     openai_script_model: str = "gpt-4o-mini"
     openai_tts_model: str = "gpt-4o-mini-tts"
     openai_request_timeout_seconds: float = 30.0
     openai_max_retries: int = 2
+
+    log_level: str = "INFO"
 
 
 def get_settings() -> Settings:

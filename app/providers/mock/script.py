@@ -14,7 +14,10 @@ class MockScriptProvider(ScriptProvider):
     """
 
     async def generate_script(
-        self, facts: SourceFacts, news_candidates: list[NewsCandidate]
+        self,
+        facts: SourceFacts,
+        news_candidates: list[NewsCandidate],
+        weather_forecast_text: str | None = None,
     ) -> Script:
         selected_news = news_candidates[:_MAX_NEWS_STORIES]
 

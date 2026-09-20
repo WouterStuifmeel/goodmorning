@@ -8,7 +8,12 @@ import pytest
 from app.audio.renderer import FFmpegAudioRenderer
 from app.models.job import JobState, SectionState
 from app.pipeline.orchestrator import Pipeline, new_job
-from app.providers.mock import MockNewsProvider, MockScriptProvider, MockTTSProvider
+from app.providers.mock import (
+    MockNewsProvider,
+    MockScriptProvider,
+    MockTTSProvider,
+    MockWeatherProvider,
+)
 from app.storage.db import JobStore
 
 
@@ -17,6 +22,7 @@ def pipeline(tmp_path: Path) -> Pipeline:
     job_store = JobStore(tmp_path / "jobs.sqlite3")
     return Pipeline(
         news_provider=MockNewsProvider(),
+        weather_provider=MockWeatherProvider(),
         script_provider=MockScriptProvider(),
         tts_provider=MockTTSProvider(),
         audio_renderer=FFmpegAudioRenderer(intro_jingle_file=None),
@@ -40,6 +46,7 @@ async def test_full_pipeline_produces_playable_episode(pipeline, source_facts, t
     assert manifest.episode_date == source_facts.episode_date
     assert manifest.source_facts == source_facts
     assert len(manifest.sections) == 5
+    assert manifest.weather_forecast_text
 
     mp3_path = tmp_path / "output" / manifest.audio_file
     assert mp3_path.exists()
@@ -74,3 +81,27 @@ async def test_pipeline_never_invents_calendar_events(pipeline, source_facts):
         assert event.title in calendar_section.text
     for reminder in source_facts.reminders:
         assert reminder.text in calendar_section.text
+
+
+async def test_pipeline_survives_weather_provider_failure(tmp_path, source_facts):
+    class _FailingWeatherProvider(MockWeatherProvider):
+        async def fetch_forecast_text(self) -> str | None:
+            raise RuntimeError("KNMI is down")
+
+    job_store = JobStore(tmp_path / "jobs.sqlite3")
+    pipeline = Pipeline(
+        news_provider=MockNewsProvider(),
+        weather_provider=_FailingWeatherProvider(),
+        script_provider=MockScriptProvider(),
+        tts_provider=MockTTSProvider(),
+        audio_renderer=FFmpegAudioRenderer(intro_jingle_file=None),
+        job_store=job_store,
+        output_dir=tmp_path / "output",
+        voice="alloy",
+    )
+    job = new_job(source_facts)
+
+    result = await pipeline.run(job)
+
+    assert result.state == JobState.completed
+    assert result.manifest.weather_forecast_text is None

@@ -8,6 +8,7 @@ services:
       GOODMORNING_SCRIPT_PROVIDER: mock
       GOODMORNING_TTS_PROVIDER: mock
       GOODMORNING_NEWS_PROVIDER: mock
+      GOODMORNING_OUTPUT_DIR: /media/goodmorning
     env_file:
       - path: /volume1/docker/goodmorning/.env
         required: false

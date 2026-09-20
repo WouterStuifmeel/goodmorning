@@ -15,12 +15,34 @@ class NewsProvider(ABC):
     async def fetch_candidates(self, interests: list[str]) -> list[NewsCandidate]: ...
 
 
+class WeatherProvider(ABC):
+    """Retrieves supplementary, free-text forecast context from an official
+    meteorological source - grounding for the script beyond the single
+    `conditions` code Home Assistant supplies. Never the sole source of
+    weather facts; HA-supplied SourceFacts.weather remains authoritative for
+    the structured numbers (high/low/precipitation/wind).
+    """
+
+    @abstractmethod
+    async def fetch_forecast_text(self) -> str | None:
+        """Return the latest forecast bulletin text, or None if unavailable.
+
+        Best-effort by design: a caller should treat None as "no extra
+        context this run" rather than a fatal error - one flaky upstream
+        feed should never block episode generation.
+        """
+        ...
+
+
 class ScriptProvider(ABC):
     """Turns source facts + retrieved news into a grounded narration script."""
 
     @abstractmethod
     async def generate_script(
-        self, facts: SourceFacts, news_candidates: list[NewsCandidate]
+        self,
+        facts: SourceFacts,
+        news_candidates: list[NewsCandidate],
+        weather_forecast_text: str | None = None,
     ) -> Script: ...
 
 

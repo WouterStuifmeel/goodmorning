@@ -10,6 +10,8 @@ Real providers now built for all three swappable stages: `RssNewsProvider` (`con
 
 The news/script prompt has been tuned through live iteration (see `app/providers/openai/script.py`'s `_SYSTEM_PROMPT`): exactly 5 headlines, current-affairs-led with exactly one guaranteed technology story (via the feed name shown per candidate), no sports/celebrity filler, and the intro must never greet the listener's location as if it were a public audience (this is a single-listener podcast, not a city broadcast).
 
+A fourth, optional provider - `KnmiWeatherProvider` (`app/providers/knmi/forecast.py`) - supplements (never replaces) the structured, HA-supplied `SourceFacts.weather`. It fetches the latest bulletin from KNMI's Open Data Platform (`short_term_weather_forecast` dataset: list files, resolve a temporary download URL, fetch the file - all three calls need `GOODMORNING_KNMI_API_KEY`, a free API key from https://developer.dataplatform.knmi.nl; the temporary download URL itself is pre-signed and deliberately never gets that key). This exists because HA's own weather aggregation (`homeassistant/example_automation.yaml`) can fall back to a near-meaningless `"mixed conditions"` when the OpenWeatherMap hourly forecast has no step in its 11:00-13:00 local sampling window - the KNMI bulletin gives the script provider real Dutch-language prose to ground the weather section in instead. Best-effort by design: any failure returns `None` rather than raising, so one flaky KNMI call never blocks episode generation (see `Pipeline.run` in `app/pipeline/orchestrator.py`). Still `mock` by default (`GOODMORNING_WEATHER_PROVIDER=knmi` to enable).
+
 ### Remaining work
 
 Everything below is unbuilt or unverified as of this note - the generation pipeline itself (facts → news → script → TTS → assembled MP3 + manifest) is real and working end-to-end, verified against live feeds and the real OpenAI APIs.
@@ -39,6 +41,7 @@ Requires `ffmpeg`/`ffprobe` on PATH. Config is env-driven (see `app/config.py`),
 - `GOODMORNING_NEWS_PROVIDER`: `mock` (default) or `rss` (reads `config/feeds.json`, live network, no key needed)
 - `GOODMORNING_SCRIPT_PROVIDER`: `mock` (default) or `openai` (needs `GOODMORNING_OPENAI_API_KEY`, real paid calls)
 - `GOODMORNING_TTS_PROVIDER`: `mock` (default) or `openai` (needs `GOODMORNING_OPENAI_API_KEY`, real paid calls)
+- `GOODMORNING_WEATHER_PROVIDER`: `mock` (default) or `knmi` (needs `GOODMORNING_KNMI_API_KEY`, free but requires signup at https://developer.dataplatform.knmi.nl; live network, supplements HA-supplied weather facts, never a paid call)
 
 ## What this is
 

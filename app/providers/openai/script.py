@@ -112,12 +112,20 @@ class OpenAIScriptProvider(ScriptProvider):
         self.delivery_instructions = delivery_instructions
 
     async def generate_script(
-        self, facts: SourceFacts, news_candidates: list[NewsCandidate]
+        self,
+        facts: SourceFacts,
+        news_candidates: list[NewsCandidate],
+        weather_forecast_text: str | None = None,
     ) -> Script:
         shown_candidates = news_candidates[:_MAX_NEWS_CANDIDATES_SHOWN]
         messages = [
             {"role": "system", "content": self._system_prompt()},
-            {"role": "user", "content": self._user_prompt(facts, shown_candidates)},
+            {
+                "role": "user",
+                "content": self._user_prompt(
+                    facts, shown_candidates, weather_forecast_text
+                ),
+            },
         ]
 
         last_error: ScriptGenerationError | None = None
@@ -157,7 +165,12 @@ class OpenAIScriptProvider(ScriptProvider):
             return _SYSTEM_PROMPT
         return f"{_SYSTEM_PROMPT}\nDelivery instructions: {self.delivery_instructions}"
 
-    def _user_prompt(self, facts: SourceFacts, candidates: list[NewsCandidate]) -> str:
+    def _user_prompt(
+        self,
+        facts: SourceFacts,
+        candidates: list[NewsCandidate],
+        weather_forecast_text: str | None,
+    ) -> str:
         lines = [
             f"Date: {facts.episode_date.isoformat()}",
             f"Location: {facts.location}",
@@ -180,6 +193,15 @@ class OpenAIScriptProvider(ScriptProvider):
                 else ""
             )
             lines.append(f"  Wind: {facts.weather.wind_kph:.0f} kph{direction}")
+        if weather_forecast_text:
+            lines.append(
+                "  Additional official forecast bulletin (KNMI, in Dutch - use "
+                "this only to add real texture/context to the weather section "
+                "in English, e.g. cloud development or how conditions change "
+                "through the day; the numbers above remain authoritative if "
+                "they conflict with anything below):"
+            )
+            lines.append(f"    {weather_forecast_text}")
 
         lines.append("")
         lines.append("Calendar events:")

@@ -38,4 +38,5 @@ class Manifest(BaseModel):
     script: Script
     source_facts: SourceFacts
     selected_news: list[NewsCandidate]
+    weather_forecast_text: str | None = None
     created_at: datetime

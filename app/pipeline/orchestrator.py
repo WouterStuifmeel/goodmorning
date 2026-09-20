@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 import tempfile
 import uuid
@@ -11,9 +12,17 @@ from app.models.job import Job, JobState, SectionState
 from app.models.manifest import Manifest, SectionAudio
 from app.models.news import NewsCandidate
 from app.models.script import SECTION_ORDER, Script, SectionName
-from app.providers.base import AudioRenderer, NewsProvider, ScriptProvider, TTSProvider
+from app.providers.base import (
+    AudioRenderer,
+    NewsProvider,
+    ScriptProvider,
+    TTSProvider,
+    WeatherProvider,
+)
 from app.storage.db import JobStore
 from app.storage.files import atomic_write_bytes, atomic_write_text
+
+logger = logging.getLogger(__name__)
 
 
 class PipelineError(Exception):
@@ -38,8 +47,10 @@ class Pipeline:
         job_store: JobStore,
         output_dir: Path,
         voice: str,
+        weather_provider: WeatherProvider | None = None,
     ) -> None:
         self.news_provider = news_provider
+        self.weather_provider = weather_provider
         self.script_provider = script_provider
         self.tts_provider = tts_provider
         self.audio_renderer = audio_renderer
@@ -48,6 +59,7 @@ class Pipeline:
         self.voice = voice
 
     async def run(self, job: Job) -> Job:
+        logger.info("job %s: starting generation for %s", job.id, job.source_facts.episode_date)
         job.state = JobState.running
         self._save(job)
 
@@ -59,9 +71,20 @@ class Pipeline:
             except Exception as exc:
                 raise PipelineError(f"news retrieval failed: {exc}") from exc
 
+            # Supplementary forecast context only - the provider itself is
+            # best-effort (returns None rather than raising), but guard here
+            # too so an unexpected bug in a custom provider can't take down
+            # the whole episode over what is, at most, nice-to-have context.
+            weather_forecast_text: str | None = None
+            if self.weather_provider is not None:
+                try:
+                    weather_forecast_text = await self.weather_provider.fetch_forecast_text()
+                except Exception as exc:
+                    logger.warning("weather context retrieval failed, continuing without it: %s", exc)
+
             try:
                 script = await self.script_provider.generate_script(
-                    job.source_facts, news_candidates
+                    job.source_facts, news_candidates, weather_forecast_text
                 )
             except Exception as exc:
                 raise PipelineError(f"script generation failed: {exc}") from exc
@@ -113,6 +136,7 @@ class Pipeline:
                     script=script,
                     source_facts=job.source_facts,
                     selected_news=self._selected_news(script, news_candidates),
+                    weather_forecast_text=weather_forecast_text,
                     created_at=datetime.now(UTC),
                 )
                 self._write_output(final_tmp, manifest, duration)
@@ -121,15 +145,21 @@ class Pipeline:
             job.state = JobState.completed
             job.error = None
             self._save(job)
+            logger.info(
+                "job %s: completed, wrote %s to %s",
+                job.id, manifest.audio_file, self.output_dir,
+            )
 
         except PipelineError as exc:
             job.state = JobState.failed
             job.error = str(exc)
             self._save(job)
+            logger.error("job %s: failed - %s", job.id, exc)
         except Exception as exc:  # unexpected failures still surface on the job
             job.state = JobState.failed
             job.error = f"unexpected pipeline failure: {exc}"
             self._save(job)
+            logger.exception("job %s: unexpected pipeline failure", job.id)
 
         return job
 
